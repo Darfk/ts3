@@ -1,7 +1,7 @@
 package ts3
 
 import (
-	"log"
+	_"log"
 	_"time"
 	"bufio"
 	"net"
@@ -17,6 +17,16 @@ type Client struct {
 	notify chan string
 	err chan string
 	res chan string
+}
+
+type Command struct {
+	Command string
+	Params map[string][]string
+	Flags []string
+}
+
+type Response struct {
+	Params []map[string]string
 }
 
 type TSError struct {
@@ -74,12 +84,6 @@ func (client *Client) rawCommand(command string) (string, string) {
 
 func (client *Client) Close() error {
 	return client.conn.Close()
-}
-
-func parseResponse(res string) {
-	for i := range strings.Split(res, "|") {
-		
-	}
 }
 
 func ScanLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
