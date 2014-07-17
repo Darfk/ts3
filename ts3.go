@@ -1,7 +1,7 @@
 package ts3
 
 import (
-	_"log"
+	"log"
 	_"time"
 	"bufio"
 	"net"
@@ -16,7 +16,7 @@ type Client struct {
 	line chan string
 	notify chan string
 	err chan string
-	res chan string
+	res string
 }
 
 type Command struct {
@@ -45,7 +45,7 @@ func NewClient(address string) (client *Client, err error) {
 	client.line = make(chan string)
 
 	client.scan = bufio.NewScanner(client.conn)
-	client.scan.Split(ScanLines)
+	client.scan.Split(ScanTS3Lines)
 	go func() {
 		for {
 			client.scan.Scan()
@@ -58,18 +58,19 @@ func NewClient(address string) (client *Client, err error) {
 	<- client.line
 
 	client.err = make(chan string)
-	client.res = make(chan string)
 	client.notify = make(chan string)
 
 	go func() {
 		for {
 			line := <- client.line
+			log.Print(line)
+
 			if strings.Index(line, "error") == 0 {
 				client.err <- line
 			} else if strings.Index(line, "notify") == 0 {
 				client.notify <- line
 			} else {
-				client.res <- line
+				client.res = line
 			}
 		}
 	}()
@@ -77,16 +78,28 @@ func NewClient(address string) (client *Client, err error) {
 	return
 }
 
-func (client *Client) rawCommand(command string) (string, string) {
+func (client *Client) Exec(command Command) (Response, TSError) {
 	fmt.Fprintf(client.conn, "%s\n\r", command)
-	return <- client.res, <- client.err 
+	err := <- client.err
+	res := client.res
+	client.res = ""
+	return parseResponse(res), parseError(err)
+}
+
+func (client *Client) ExecString(command string) (string, string) {
+	fmt.Fprintf(client.conn, "%s\n\r", command)
+	err := <- client.err
+	res := client.res
+	client.res = ""
+	return res, err
 }
 
 func (client *Client) Close() error {
 	return client.conn.Close()
 }
 
-func ScanLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
+// This function is almost exactly like bufio.ScanLines except the \r\n are in opposite positions
+func ScanTS3Lines(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {
  		return 0, nil, nil
 	}

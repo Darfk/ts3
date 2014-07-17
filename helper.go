@@ -2,7 +2,8 @@ package ts3
 
 import (
 	"strings"
-	"log"
+	"strconv"
+	_"log"
 )
 
 func Login(user, pass string) (c Command) {
@@ -14,25 +15,50 @@ func Login(user, pass string) (c Command) {
 	}
 }
 
-func Use(index string) (c Command) {
+func Version() (c Command) {
 	return Command{
-		Command: "use",
-		Params: map[string][]string {
-			"sid":[]string{index}},
+		Command: "version",
 	}
 }
 
-func Kick(clients []string) (c Command) {
+
+func Use(index int) (c Command) {
+	return Command{
+		Command: "use",
+		Params: map[string][]string {
+			"sid":[]string{strconv.Itoa(index)}},
+	}
+}
+
+func Poke(clients []string, reasonmsg string) (c Command) {
 	return Command{
 		Command: "clientkick",
 		Params: map[string][]string {
 			"clid":clients,
 			"reasonid":[]string{"5"},
+			"reasonmsg":[]string{reasonmsg},
 		},
 	}
 }
 
-func (c *Command) String() (s string) {
+func Kick(clients []string, reasonmsg string) (c Command) {
+	return Command{
+		Command: "clientkick",
+		Params: map[string][]string {
+			"clid":clients,
+			"reasonid":[]string{"5"},
+			"reasonmsg":[]string{reasonmsg},
+		},
+	}
+}
+
+func ClientList() (c Command) {
+	return Command{
+		Command: "clientlist",
+	}
+}
+
+func (c Command) String() (s string) {
 	var params, flags []string
 	for k, v := range c.Params {
 		if len(v) > 1 {
@@ -55,7 +81,6 @@ func parseResponse(s string) (r Response) {
 	r = Response{}
 	subResponses := strings.Split(s, "|")
 	for i := range subResponses {
-		log.Print(subResponses)
 		r.Params = append(r.Params, make(map[string]string))
 		kvPairs := strings.Split(subResponses[i], " ")
 		for ii := range kvPairs {
@@ -65,6 +90,29 @@ func parseResponse(s string) (r Response) {
 			}else{
 				r.Params[i][kvPair[0]] = ""
 			}
+		}
+	}
+	return
+}
+
+func parseError(s string) (e TSError) {
+	e = TSError{}
+	kvPairs := strings.Split(s, " ")
+	for i := range kvPairs {
+		kvPair := strings.SplitN(kvPairs[i], "=", 2)
+		if len(kvPair) > 1 {
+			if kvPair[0] == "id" {
+				id, err := strconv.ParseInt(kvPair[1], 10, 32)
+				if err != nil {
+					e.id = -1
+				}else{
+					e.id = int(id)
+				}
+			}else if kvPair[0] == "msg" {
+				e.msg = kvPair[1]
+			}
+		}else{
+			continue;
 		}
 	}
 	return
