@@ -76,13 +76,13 @@ func NewClient(address string) (client *Client, err error) {
 	// Spin up the notify handler
 	go func() {
 		for {
+			notification := <-client.notify
 			if client.notifyHandler != nil {
-				client.notifyHandler(ParseNotification(<-client.notify))
+				client.notifyHandler(ParseNotification(notification))
 			} else if client.notifyHandlerString != nil {
-				client.notifyHandlerString(<-client.notify)
+				client.notifyHandlerString(notification)
 			} else {
-				// Nothing to catch it... discard
-				<-client.notify
+				// discard
 			}
 		}
 	}()
@@ -228,11 +228,11 @@ func (c Command) String() (s string) {
 		if len(v) > 1 {
 			var subParams []string
 			for _, vv := range v {
-				subParams = append(subParams, k+"="+vv)
+				subParams = append(subParams, k+"="+Escape(vv))
 			}
 			params = append(params, strings.Join(subParams, "|"))
 		} else if len(v) == 1 {
-			params = append(params, strings.Join([]string{k, v[0]}, "="))
+			params = append(params, strings.Join([]string{k, Escape(v[0])}, "="))
 		} else {
 			params = append(params, k)
 		}

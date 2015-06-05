@@ -44,11 +44,34 @@ func ClientList() Command {
 	}
 }
 
+func ChannelList() Command {
+	return Command{
+		Command: "channellist",
+		Flags:   []string{"flags"},
+	}
+}
+
 func (client *Client) WalkClients(step func(int, map[string]string)) (err error) {
 
 	var res Response
 
 	res, err = client.Exec(ClientList())
+	if err != nil {
+		return
+	}
+
+	for i := range res.Params {
+		step(i, res.Params[i])
+	}
+
+	return
+}
+
+func (client *Client) WalkChannels(step func(int, map[string]string)) (err error) {
+
+	var res Response
+
+	res, err = client.Exec(ChannelList())
 	if err != nil {
 		return
 	}

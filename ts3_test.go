@@ -11,7 +11,7 @@ type config struct {
 	Server   int    `json:"server"`
 }
 
-func TestTS3(t *testing.T) {
+func TestBasic(t *testing.T) {
 
 	var err error
 
@@ -75,5 +75,47 @@ func TestTS3(t *testing.T) {
 	} else {
 		t.Log("Nathan must be asleep!")
 	}
+
+	var lobbyChannelId string
+
+	err = client.WalkChannels(func(idx int, channel map[string]string) {
+		if name, ok := channel["channel_name"]; ok && name == "Lobby" {
+			t.Log(channel)
+			if cid, ok := channel["cid"]; ok {
+				lobbyChannelId = cid
+			}
+		}
+	})
+
+	response, err = client.Exec(Command{
+		Command: "servernotifyregister",
+		Params: map[string][]string{
+			"event":[]string{"textchannel"},
+			"id":[]string{lobbyChannelId},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	notification := make(chan Notification)
+
+	client.NotifyHandler(func (n Notification) {
+		notification <- n
+	})
+
+	response, err = client.Exec(Command{
+		Command: "sendtextmessage",
+		Params: map[string][]string{
+			"targetmode":[]string{"2"},
+			"target":[]string{lobbyChannelId},
+			"msg":[]string{"this is a test"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(<-notification)
 
 }
