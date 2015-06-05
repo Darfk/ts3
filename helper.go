@@ -7,9 +7,9 @@ import (
 func Login(user, pass string) (c Command) {
 	return Command{
 		Command: "login",
-		Params: map[string][]string {
-			"client_login_name":[]string{user},
-			"client_login_password":[]string{pass}},
+		Params: map[string][]string{
+			"client_login_name":     []string{user},
+			"client_login_password": []string{pass}},
 	}
 }
 
@@ -19,27 +19,26 @@ func Version() (c Command) {
 	}
 }
 
-
-func Use(index int) (Command) {
+func Use(index int) Command {
 	return Command{
 		Command: "use",
-		Params: map[string][]string {
-			"sid":[]string{strconv.Itoa(index)}},
+		Params: map[string][]string{
+			"sid": []string{strconv.Itoa(index)}},
 	}
 }
 
-func Kick(clients []string, reasonmsg string) (Command) {
+func Kick(clients []string, reasonmsg string) Command {
 	return Command{
 		Command: "clientkick",
-		Params: map[string][]string {
-			"clid":clients,
-			"reasonid":[]string{"5"},
-			"reasonmsg":[]string{reasonmsg},
+		Params: map[string][]string{
+			"clid":      clients,
+			"reasonid":  []string{"5"},
+			"reasonmsg": []string{reasonmsg},
 		},
 	}
 }
 
-func ClientList() (Command) {
+func ClientList() Command {
 	return Command{
 		Command: "clientlist",
 	}
@@ -51,7 +50,7 @@ func (client *Client) WalkClients(step func(int, map[string]string)) (err error)
 
 	res, err = client.Exec(ClientList())
 	if err != nil {
-		return 
+		return
 	}
 
 	for i := range res.Params {

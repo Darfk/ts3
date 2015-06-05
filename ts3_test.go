@@ -2,122 +2,78 @@ package ts3
 
 import (
 	"testing"
-	"fmt"
-	"strings"
 )
 
-func TestWalkClients(t *testing.T) {
-	client, err := NewClient("teamspeak.darfk.net:10011")
-	if err != nil {
-		t.Error("Connection failed")
-	}
-	defer client.Close();
+type config struct {
+	Address  string `json:"address"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Server   int    `json:"server"`
+}
 
-	client.Exec(Login(username, password))
-	client.Exec(Use(1))
-	client.WalkClients(func(idx int, client map[string]string) {
-		t.Log(idx, client["client_nickname"])
+func TestTS3(t *testing.T) {
+
+	var err error
+
+	config := config{
+		"teamspeak.darfk.net:10011",
+		"test",
+		"xWUkRRlM",
+		1,
+	}
+
+	client, err := NewClient(config.Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("connected to %s", config.Address)
+
+	var response Response
+
+	response, err = client.Exec(Login(config.Username, config.Password))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("logged in as %s", config.Username)
+
+	response, err = client.Exec(Use(config.Server))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("using server %d", config.Server)
+
+	response, err = client.Exec(Version())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("version %q", response)
+
+	t.Logf("doing something we're not allowed to do")
+	response, err = client.Exec(Command{
+		Command: "serverlist",
 	})
-}
-
-func testNotify(t *testing.T) {
-	client, err := NewClient("teamspeak.darfk.net:10011")
-	if err != nil {
-		t.Error("Connection failed")
+	if err == nil {
+		t.Fatal("expected error")
 	}
-	defer client.Close();
+	t.Logf("%s", err)
 
-	notifyChan := make(chan string, 1)
+	// Let's see if Nathan's online >:)
 
-	client.NotifyHandlerString(func(s string){
-		notifyChan <- s
-	})
+	var nathanIsOnline bool = false
 
-	client.Exec(Login(username, password))
-	client.Exec(Use(1))
-	client.ExecString("servernotifyregister event=server")
-
-	notification := ParseNotification(<-notifyChan)
-
-	t.Log(notification)
-	
-}
-
-func testConnection(t *testing.T) {
-
-	client, err := NewClient("teamspeak.darfk.net:10011")
-	if err != nil {
-		t.Error("Connection failed")
-	}
-
-	client.Close()
-
-}
-
-func testParseResponse(t *testing.T) {
-
-	client, err := NewClient("teamspeak.darfk.net:10011")
-	defer client.Close()
-	if err != nil {
-		t.Error("Connection failed")
-	}
-
-	res, _ := client.ExecString("version")
-
-	t.Log(ParseResponse(res))
-}
-
-func testParseError(t *testing.T) {
-
-	client, err := NewClient("teamspeak.darfk.net:10011")
-	if err != nil {
-		t.Error("Connection failed")
-	}
-
-	_, tserr := client.ExecString("version")
-
-	t.Log(ParseError(tserr))
-
-	client.Close()
-}
-
-func testHelpers(t *testing.T) {
-
-	var command Command
-	var s fmt.Stringer
-
-	command = Login("username", "password")
-	s = &command
-	t.Logf("%s", s)
-
-	command = Kick([]string{"1", "2", "3"}, "")
-	s = &command
-	t.Logf("%s", s)
-}
-
-func testLogin(t *testing.T) {
-
-	client, err := NewClient("teamspeak.darfk.net:10011")
-	if err != nil {
-		t.Error("Connection failed")
-	}
-
-	var res Response
-	var tserr TSError
-
-	client.Exec(Login(username, password))
-	client.Exec(Use(1))
-	res, tserr = client.Exec(ClientList())
-	if tserr.id == 0 {
-		for i := range res.Params {
-			if nick, k := res.Params[i]["client_nickname"]; k && strings.Contains(nick, "Nathan") {
-				client.Exec(Kick([]string{res.Params[i]["clid"]}, "GOLANG!"))
-			}
+	err = client.WalkClients(func(idx int, client map[string]string) {
+		if nick, ok := client["client_nickname"]; ok && nick == "Nathan" {
+			nathanIsOnline = true
 		}
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	t.Log(res)
-	t.Log(tserr)
+	if nathanIsOnline {
+		t.Log("Nathan is online!")
+	} else {
+		t.Log("Nathan must be asleep!")
+	}
 
-	client.Close()
 }

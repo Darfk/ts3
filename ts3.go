@@ -38,12 +38,13 @@ type Notification struct {
 }
 
 type TSError struct {
-	id  int
-	msg string
+	id    int
+	msg   string
+	extra string
 }
 
 func (e TSError) Error() string {
-	return fmt.Sprintf("ts3 error %d: %v", e.id, e.msg)
+	return fmt.Sprintf("ts3: %s (%d) %s", e.msg, e.id, e.extra)
 }
 
 func NewClient(address string) (client *Client, err error) {
@@ -57,7 +58,7 @@ func NewClient(address string) (client *Client, err error) {
 	client.line = make(chan string)
 
 	client.scan = bufio.NewScanner(client.conn)
-	client.scan.Split(ScanTS3Lines)
+	client.scan.Split(scanTS3Lines)
 	go func() {
 		for {
 			client.scan.Scan()
@@ -139,7 +140,7 @@ func (client *Client) Close() error {
 }
 
 // This function is almost exactly like bufio.ScanLines except the \r\n are in opposite positions
-func ScanTS3Lines(data []byte, atEOF bool) (advance int, token []byte, err error) {
+func scanTS3Lines(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
 	}
@@ -205,6 +206,8 @@ func ParseError(s string) error {
 				}
 			} else if kvPair[0] == "msg" {
 				e.msg = Unescape(kvPair[1])
+			} else if kvPair[0] == "extra_msg" {
+				e.extra = Unescape(kvPair[1])
 			}
 		} else {
 			continue
