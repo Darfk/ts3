@@ -1,0 +1,8 @@
+package ts3
+
+const (
+	username string = "howdy"
+	password string = "pardner"
+	serverId = 1
+	address = "teamspeak.example.org:10011"
+)

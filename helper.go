@@ -28,17 +28,6 @@ func Use(index int) (Command) {
 	}
 }
 
-func Poke(clients []string, reasonmsg string) (Command) {
-	return Command{
-		Command: "clientkick",
-		Params: map[string][]string {
-			"clid":clients,
-			"reasonid":[]string{"5"},
-			"reasonmsg":[]string{reasonmsg},
-		},
-	}
-}
-
 func Kick(clients []string, reasonmsg string) (Command) {
 	return Command{
 		Command: "clientkick",
@@ -56,18 +45,18 @@ func ClientList() (Command) {
 	}
 }
 
-func (client *Client) WalkClients(step func(int, map[string]string)) (err TSError) {
+func (client *Client) WalkClients(step func(int, map[string]string)) (err error) {
 
 	var res Response
 
 	res, err = client.Exec(ClientList())
-	if err.id != 0 {
-		return err
+	if err != nil {
+		return 
 	}
 
 	for i := range res.Params {
 		step(i, res.Params[i])
 	}
 
-	return err
+	return
 }
