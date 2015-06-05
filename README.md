@@ -6,13 +6,13 @@ Package ts3 implements the Teamspeak 3 ServerQuery protocol described [here](htt
 Features
 ---
 
-- Notification Handling
+- Notification handling
 - Some helper functions
 
 Example Usage
 ---
 
-See the test file for a more comprehensive example
+See the [test file](https://github.com/Darfk/ts3/blob/master/ts3_test.go) for a more comprehensive example
 
     package main
 
@@ -22,14 +22,17 @@ See the test file for a more comprehensive example
     )
 
     func main() {
-
         client, err := ts3.NewClient("teamspeak.darfk.net:10011")
-
-        username := "test"
-
-        response, err := client.Exec(ts3.Login(username, "xWUkRRlM"))
-        log.Printf("logged in as %s\n", username)
-
+        if err != nil {
+            log.Fatal(err)
+        }
+        
+        // This a test user account
+        response, err := client.Exec(ts3.Login("test", "xWUkRRlM"))
+        if err != nil {
+            log.Fatal(err)
+        }
+        
         response, err = client.Exec(ts3.Version())
         if err != nil {
             log.Fatal(err)
@@ -38,7 +41,6 @@ See the test file for a more comprehensive example
         log.Printf("version %q\n", response)
 
         client.Close()
-
     }
 
 Licence
