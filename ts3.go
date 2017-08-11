@@ -5,6 +5,7 @@ package ts3
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -20,6 +21,7 @@ type Client struct {
 	res                 string
 	notifyHandler       func(Notification)
 	notifyHandlerString func(string)
+	connErrorHandler    func(error)
 }
 
 type Command struct {
@@ -61,7 +63,14 @@ func NewClient(address string) (client *Client, err error) {
 	client.scan.Split(scanTS3Lines)
 	go func() {
 		for {
-			client.scan.Scan()
+			if !client.scan.Scan() && client.connErrorHandler != nil {
+				err = client.scan.Err()
+				if err != nil {
+					client.connErrorHandler(err)
+				} else {
+					client.connErrorHandler(errors.New("EOF"))
+				}
+			}
 			client.line <- client.scan.Text()
 		}
 	}()
@@ -117,6 +126,14 @@ func (client *Client) NotifyHandlerString(handler func(string)) {
 func (client *Client) RemoveNotifyHandler() {
 	client.notifyHandlerString = nil
 	client.notifyHandler = nil
+}
+
+func (client *Client) ConnErrorHandler(handler func(error)) {
+	client.connErrorHandler = handler
+}
+
+func (client *Client) RemoveConnErrorHandler() {
+	client.connErrorHandler = nil
 }
 
 func (client *Client) Exec(command Command) (Response, error) {
